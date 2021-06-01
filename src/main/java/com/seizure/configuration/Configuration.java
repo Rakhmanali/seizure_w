@@ -2,20 +2,24 @@ package com.seizure.configuration;
 
 import com.seizure.models.ConnectionInfo;
 import com.seizure.models.PubSubTableInfo;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 public class Configuration {
-    private final String propertyFileName = "resources/app.properties";
     private final Properties properties;
 
     public Configuration() throws IOException {
         this.properties = new Properties();
-        this.properties.load(new FileInputStream(propertyFileName));
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("application.properties");
+        this.properties.load(inputStream);
     }
 
     private ConnectionInfo loadPublisherConnectionInfo() throws IllegalArgumentException {
