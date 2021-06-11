@@ -1,6 +1,5 @@
 package com.seizure.subscriber;
 
-
 import com.seizure.models.ConnectionInfo;
 import com.seizure.models.PubSubTableInfo;
 import com.seizure.publisher.ConnectionManager;
@@ -20,7 +19,6 @@ public class SettingUp implements AutoCloseable {
     private static final Logger logger = LogManager.getLogger(SettingUp.class);
 
     private final List<PubSubTableInfo> pubSubTableInfoList;
-
     private final ConnectionManager publisherConnectionManager;
     private final ConnectionManager subscriberConnectionManager;
 
@@ -74,8 +72,8 @@ public class SettingUp implements AutoCloseable {
         return result;
     }
 
-    private boolean tableExists(String schemaName, String tableName, ConnectionManager connectionManager) throws SQLException {
-        String sql = "select exists  (select 1 from information_schema.tables " +
+    private boolean tableExists(final String schemaName, final String tableName, final ConnectionManager connectionManager) throws SQLException {
+        final String sql = "select exists  (select 1 from information_schema.tables " +
                 String.format("where table_schema = '%s' ", schemaName) +
                 String.format("and table_name = '%s');", tableName);
         PreparedStatement statement = connectionManager.getSQLConnection().prepareStatement(sql);
@@ -89,7 +87,6 @@ public class SettingUp implements AutoCloseable {
     }
 
     public void createSubscriberTables() throws ClassNotFoundException, SQLException {
-        System.out.println("creating subscriber tables if necessary...");
         logger.info("creating subscriber tables if necessary...");
 
         this.publisherConnectionManager.createSQLConnection();
@@ -108,25 +105,20 @@ public class SettingUp implements AutoCloseable {
                 tableMetaData = tableMetaDataList.get(i);
                 this.createSubscriberTable(schemaName, tableName, tableMetaData, this.subscriberConnectionManager);
             } else {
-                System.out.printf("the subscriber has the table - '%s.%s' already\r\n", schemaName, tableName);
                 logger.info("the subscriber has the table - '{}.{}' already", schemaName, tableName);
             }
         }
 
-        System.out.println("done.");
         logger.info("done.");
     }
 
     private void createSubscriberSchemaIfNotExists(String schemaName, ConnectionManager connectionManager) throws SQLException {
-        String sql = String.format("create schema if not exists %s;", schemaName);
-
-        System.out.printf("trying to create schema '%s' if not exists...\r\n", schemaName);
         logger.info("trying to create schema '{}' if not exists...", schemaName);
 
+        String sql = String.format("create schema if not exists %s;", schemaName);
         PreparedStatement statement = connectionManager.getSQLConnection().prepareStatement(sql);
         statement.executeUpdate();
 
-        System.out.println("done.");
         logger.info("done.");
     }
 
@@ -165,13 +157,11 @@ public class SettingUp implements AutoCloseable {
         sb.append(")");
         String sql = sb.toString();
 
-        System.out.printf("trying to create new table: %s\r\n", sql);
         logger.info("trying to create new table: {}", sql);
 
         PreparedStatement statement = connectionManager.getSQLConnection().prepareStatement(sql);
         statement.executeUpdate();
 
-        System.out.println("done.");
         logger.info("done.");
     }
 

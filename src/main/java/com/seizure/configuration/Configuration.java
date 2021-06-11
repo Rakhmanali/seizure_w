@@ -2,23 +2,33 @@ package com.seizure.configuration;
 
 import com.seizure.models.ConnectionInfo;
 import com.seizure.models.PubSubTableInfo;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 
 public class Configuration {
+    private static final Logger logger = LogManager.getLogger(Configuration.class);
+
     private final Properties properties;
 
-    public Configuration() throws IOException {
+    public Configuration(String content) throws IOException {
         this.properties = new Properties();
-        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("application.properties");
+        InputStream inputStream;
+        if (Optional.ofNullable(content).isEmpty()) {
+            logger.info("reading the configuration from application configuration file...");
+            inputStream = getClass().getClassLoader().getResourceAsStream("application.properties");
+        } else {
+            logger.info("reading the configuration from outside ...");
+            inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        }
         this.properties.load(inputStream);
     }
 

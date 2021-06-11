@@ -11,8 +11,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
-import java.net.URI;
+import java.net.URL;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -23,84 +25,58 @@ public class Program {
     private DataListener dataListener = null;
     private ChangeDataCapture changeDataCapture = null;
 
-    public void start() {
+    public void start(String confContent) throws Exception {
 
         if (isStarted == true) {
+            logger.info("the seizure is already started...");
             return;
         }
         isStarted = true;
 
-        ConnectionInfo publisherConnectionInfo;
-        ConnectionInfo subscriberConnectionInfo;
-        List<PubSubTableInfo> pubSubTableInfoList;
-
-        String publicationName;
-        String slot;
-        int maxTasks;
-        int batchSize;
-
-        try {
-
-            String path = getClass().getClassLoader().getResource("log4j2.xml").getPath();
-            Configurator.initialize(null, path);
-
-            logger.info("reading the configuration data ...");
-
-            com.seizure.configuration.Configuration configuration = new Configuration();
-            publisherConnectionInfo = configuration.getPublisherConnectionInfo();
-            subscriberConnectionInfo = configuration.getSubscriberConnectionInfo();
-            pubSubTableInfoList = configuration.getPubSubTableInfoList();
-
-            publicationName = configuration.getPublicationName();
-            slot = configuration.getPublisherSlot();
-
-            maxTasks = configuration.getMaxTasks();
-            batchSize = configuration.getBatchSize();
-
-            logger.info("done.");
-        } catch (Exception ex) {
-            logger.error("main() - {}", ex.toString());
-            return;
+        final URL url = getClass().getClassLoader().getResource("log4j2.xml");
+        if (Optional.ofNullable(url).isEmpty()) {
+            throw new IllegalStateException("cannot read the log configuration file");
         }
+        final String path = url.getPath();
+        Configurator.initialize(null, path);
 
-        try {
-            logger.info("setting up...");
-            try (SettingUp settingUp = new SettingUp(publisherConnectionInfo, subscriberConnectionInfo, pubSubTableInfoList)) {
-                settingUp.createSubscriberTables();
-            }
-            logger.info("done.");
-        } catch (Exception ex) {
-            logger.error("main() - {}", ex.toString());
-            return;
-        }
+        logger.info("reading the configuration data ...");
 
-        try {
-            logger.info("publication ...");
-            try (Publication publication = new Publication(publisherConnectionInfo, publicationName, pubSubTableInfoList)) {
-                publication.initializePublication();
-            }
-            logger.info("done.");
-        } catch (Exception ex) {
-            logger.error("main() - {}", ex.toString());
-            return;
+        com.seizure.configuration.Configuration configuration = new Configuration(confContent);
+        final ConnectionInfo publisherConnectionInfo = configuration.getPublisherConnectionInfo();
+        final ConnectionInfo subscriberConnectionInfo = configuration.getSubscriberConnectionInfo();
+        final List<PubSubTableInfo> pubSubTableInfoList = configuration.getPubSubTableInfoList();
+
+        final String publicationName = configuration.getPublicationName();
+        final String slot = configuration.getPublisherSlot();
+
+        final int maxTasks = configuration.getMaxTasks();
+        final int batchSize = configuration.getBatchSize();
+        logger.info("done.");
+
+        logger.info("setting up...");
+        try (SettingUp settingUp = new SettingUp(publisherConnectionInfo, subscriberConnectionInfo, pubSubTableInfoList)) {
+            settingUp.createSubscriberTables();
         }
+        logger.info("done.");
+
+        logger.info("publication ...");
+        try (Publication publication = new Publication(publisherConnectionInfo, publicationName, pubSubTableInfoList)) {
+            publication.initializePublication();
+        }
+        logger.info("done.");
 
         ConcurrentHashMap<String, ConcurrentLinkedQueue<String>> concurrentHashMap = new ConcurrentHashMap<>();
-        try {
-            logger.info("starting the change data capture process ...");
-            changeDataCapture = new ChangeDataCapture(concurrentHashMap, publisherConnectionInfo, publicationName, slot, true, true, false);
-            changeDataCapture.start();
-            logger.info("done.");
+        logger.info("starting the change data capture process ...");
+        changeDataCapture = new ChangeDataCapture(concurrentHashMap, publisherConnectionInfo, publicationName, slot, true, true, false);
+        changeDataCapture.start();
+        logger.info("done.");
 
-            logger.info("trying to start the data listener ...");
-            ConcurrentLinkedQueue<String> queue = concurrentHashMap.get(publisherConnectionInfo.getDatabase());
-            dataListener = new DataListener(queue, maxTasks, batchSize, subscriberConnectionInfo, pubSubTableInfoList);
-            dataListener.start();
-            logger.info("done.");
-        } catch (Exception ex) {
-            stop();
-            logger.error("main() - {}", ex.toString());
-        }
+        logger.info("trying to start the data listener ...");
+        ConcurrentLinkedQueue<String> queue = concurrentHashMap.get(publisherConnectionInfo.getDatabase());
+        dataListener = new DataListener(queue, maxTasks, batchSize, subscriberConnectionInfo, pubSubTableInfoList);
+        dataListener.start();
+        logger.info("done.");
     }
 
     public void stop() {
@@ -134,5 +110,14 @@ public class Program {
             changeDataCapture = null;
             logger.info("done.");
         }
+
+        isStarted = false;
+    }
+
+    public long getRecordsCount() {
+        if (dataListener != null) {
+            return dataListener.getRecordsCount();
+        }
+        return 0;
     }
 }

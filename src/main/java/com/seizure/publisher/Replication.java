@@ -106,7 +106,6 @@ public class Replication implements AutoCloseable {
             this.dropReplicationSlot();
             this.connectionManager.closeReplicationConnection();
 
-            System.out.printf("please, do not forget to be sure that the replication slot: %s was dropped\r\n", this.slot);
             logger.info("please, do not forget to be sure that the replication slot: {} was dropped", this.slot);
         } catch (Exception ex) {
             logger.error("close() - {}", ex.toString());

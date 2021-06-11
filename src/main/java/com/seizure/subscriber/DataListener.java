@@ -19,7 +19,6 @@ public class DataListener extends Thread {
     private final ConcurrentLinkedQueue<String> queue;
     private final ConnectionPool connectionPool;
     private final String database;
-    //private final String schemaName;
     private final int maxTasks;
     private final int batchSize;
 
@@ -34,8 +33,6 @@ public class DataListener extends Thread {
         this.maxTasks = maxTasks;
         this.batchSize = batchSize;
         this.database = connectionInfo.getDatabase();
-        //  this.schemaName = connectionInfo.getSchemaName();
-
         this.pubSubTableInfoList = pubSubTableInfoList;
 
         String url = "jdbc:postgresql://" + connectionInfo.getServer() + "/" + database;
@@ -108,12 +105,10 @@ public class DataListener extends Thread {
             }
         }
 
-        System.out.println("the work is interrupted...");
         logger.info("the work is interrupted...");
 
         int size;
         while ((size = recordCreators.size()) > 0) {
-            System.out.printf("there are %s tasks is working still, lets wait a little ...\r\n", size);
             logger.info("there are {} tasks is working still, lets wait a little ...", size);
 
             Iterator<RecordCreator> threadIterator = recordCreators.iterator();
@@ -132,12 +127,10 @@ public class DataListener extends Thread {
             }
         }
 
-        System.out.println("all tasks are finished, trying to release used connections ... ");
         logger.info("all tasks are finished, trying to release used connections ... ");
 
         try {
             this.connectionPool.shutdown();
-            System.out.println("done.");
             logger.info("done.");
         } catch (Exception ex) {
             ex.printStackTrace();

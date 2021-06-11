@@ -17,7 +17,6 @@ public class Publication implements AutoCloseable {
 
     private final ConnectionManager connectionManager;
     private final String publicationName;
-    //private final List<TableInfo> publicationTableInfoList;
     private final List<PubSubTableInfo> pubSubTableInfoList;
 
     public Publication(ConnectionInfo connectionInfo, String publicationName, List<PubSubTableInfo> pubSubTableInfoList) {
